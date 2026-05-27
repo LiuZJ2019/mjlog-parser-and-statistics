@@ -1,0 +1,4 @@
+bin/
+cmake-build-*/
+hskmjlog_data/
+.idea/
