@@ -145,7 +145,7 @@ uint16_t get_u16_from_attrs(const XmlMap &attrs, const char *name);
 
 // 结果统计用的函数，用于测试命令行里输出结果
 double average(const vector<int64_t> &vec);
-double std(const vector<int64_t> &vec);
+double standard(const vector<int64_t> &vec);
 string avg_std(const vector<int64_t> &vec);
 
 // Buffer的I/O接口，不处理大小端，总是假设是小端设备

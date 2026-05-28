@@ -23,7 +23,7 @@ void MjlogGameContainer::read_bytes(Buffer &q)
 
 void MjlogGameContainer::write_bytes(Buffer &q, uint32_t start_idx, uint32_t end_idx) const
 {
-    if (end_idx == -1) {
+    if (end_idx == UINT32_MAX) {
         end_idx = m_games.size();
     }
     for (uint32_t i = start_idx; i < end_idx; ++i) {

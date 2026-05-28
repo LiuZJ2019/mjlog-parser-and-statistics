@@ -20,6 +20,12 @@
 
 ### 版本
 
+#### v1.0.1
+
+新增了若干算法，通过宏和模板减少重复代码
+
+新增了`stats.ipynb`，对`output/output.json`进行结果分析（硬编码的路径，vibe coding+微调的结果，我懒得做一般性适配）
+
 #### v1.0.0
 
 实现了基本的算法，开源到github
@@ -135,14 +141,20 @@ convert_xml_to_hskmjlog time: 258.65s
 - 输入参数3：output_json，为**输出**的结果报表文件保存路径
 - 输入参数4（可选）：suffix，为**输入文件格式**，默认为hskmjlog，只支持hskmjlog和xml。
 
-下面是我本地的输出（对2025年所有四人南凤凰桌牌谱的处理结果）：
+下面是我本地的输出（对2025年所有四人南凤凰桌牌谱的处理结果），采用release模式：
 
 ```
 Data loaded success. Games: 178897
-Data load time: 1.97938s
-do_stats_algorithm success. Algorithm: 11
-do_stats_algorithm time: 0.621391s
+Data load time: 2.09373s
+do_stats_algorithm success. Algorithm: 61
+do_stats_algorithm time: 2.60772s
 ```
+
+
+
+### 功能3：结果分析
+
+`stats.ipynb`文件编写了输出的`output/output.json`文件的使用demo，没有做适配，但是python代码很好懂，如果想用稍微改改就行
 
 
 

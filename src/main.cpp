@@ -54,7 +54,7 @@ bool convert_xml_to_hskmjlog(const string &input_dir, const string &output_dir, 
         }
         Buffer q;
         container.write_bytes(q);
-        Hasaki::save_hskmjlog(output_dir + dir_name + ".hskmjlog", q);
+        Hasaki::save_hskmjlog(fs::path(output_dir) / (dir_name + ".hskmjlog"), q);
         game_cnt += container.m_games.size();
     }
 
@@ -67,54 +67,87 @@ bool convert_xml_to_hskmjlog(const string &input_dir, const string &output_dir, 
 }
 
 
+#define EXECUTE_STATS(method, data_type)                                        \
+{                                                                               \
+    auto temp_data = method(container);                                         \
+    jsonContainer.add_data(#method, JsonOutputDataType::data_type, temp_data);  \
+}
+
 void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
 {
     auto stats_start = steady_clock::now();
     JsonContainer jsonContainer;
-    {
-        auto temp_data = stats_richi_ok_num(container);
-        jsonContainer.add_data("stats_richi_ok_num", JsonOutputDataType::NUM_OCCUR_TIME, temp_data);
-    }
-    {
-        auto temp_data = stats_first_richi_ok_num(container);
-        jsonContainer.add_data("stats_first_richi_ok_num", JsonOutputDataType::NUM_OCCUR_TIME, temp_data);
-    }
-    {
-        auto temp_data = stats_chasing_richi_ok_num(container);
-        jsonContainer.add_data("stats_chasing_richi_ok_num", JsonOutputDataType::NUM_OCCUR_TIME, temp_data);
-    }
-    {
-        auto temp_data = stats_be_chased_richi_ok_num(container);
-        jsonContainer.add_data("stats_be_chased_richi_ok_num", JsonOutputDataType::NUM_OCCUR_TIME, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_gain(container);
-        jsonContainer.add_data("stats_richi_n_gain", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_ron_rate(container);
-        jsonContainer.add_data("stats_richi_n_ron_rate", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_tsumo_rate(container);
-        jsonContainer.add_data("stats_richi_n_tsumo_rate", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_be_ron_rate(container);
-        jsonContainer.add_data("stats_richi_n_be_ron_rate", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_be_tsumo_rate(container);
-        jsonContainer.add_data("stats_richi_n_be_tsumo_rate", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_draw_rate(container);
-        jsonContainer.add_data("stats_richi_n_draw_rate", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
-    {
-        auto temp_data = stats_richi_n_ryuukyoku_rate(container);
-        jsonContainer.add_data("stats_richi_n_ryuukyoku_rate", JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE, temp_data);
-    }
+
+    EXECUTE_STATS(stats_richi_player_num, NUM_OCCUR_TIME)
+
+    EXECUTE_STATS(stats_richi_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_richi_ok_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_first_richi_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_first_richi_ok_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_chasing_richi_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_chasing_richi_ok_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_be_chased_richi_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_be_chased_richi_ok_num, NUM_OCCUR_TIME)
+
+    EXECUTE_STATS(stats_richi_n_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_be_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_be_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_draw_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_ryuukyoku_gain, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_richi_n_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_be_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_be_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_first_richi_n_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_be_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_be_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_draw_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_ryuukyoku_gain, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_first_richi_n_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_be_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_be_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_first_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_chasing_richi_n_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_be_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_be_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_draw_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_ryuukyoku_gain, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_chasing_richi_n_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_be_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_be_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_chasing_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_be_chased_richi_n_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_be_ron_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_be_tsumo_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_draw_gain, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_ryuukyoku_gain, NUM_TO_MEAN_STD_SAMPLE)
+
+    EXECUTE_STATS(stats_be_chased_richi_n_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_be_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_be_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
+    EXECUTE_STATS(stats_be_chased_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
 
     cout << "do_stats_algorithm success. Algorithm: " << jsonContainer.all_data.size() << endl;
     auto stats_end = steady_clock::now();
