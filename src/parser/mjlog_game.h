@@ -27,6 +27,11 @@ namespace Hasaki {
 
 using std::bitset;
 
+using DoraMap = array<uint8_t, 34>;
+using DoraIndicator = array<uint8_t, 5>;
+using HaiCompress = array<uint8_t, 13>;     // 压缩编码的手牌，每个副露压缩成 MELD+2B
+using HaiFlatten = array<uint8_t, 24>;      // 完全展开的手牌，副露也展开
+
 struct InitData {
     uint8_t m_round;
     uint8_t m_honba;
@@ -34,7 +39,7 @@ struct InitData {
     uint8_t m_dora;
     array<int16_t, 4> m_ten;
     uint8_t m_oya;
-    array<array<uint8_t, 13>, 4> m_hai;
+    array<HaiCompress, 4> m_hai;
 
     static InitData from_bytes(Buffer &q);
     void to_bytes(Buffer &q) const;
@@ -45,6 +50,9 @@ struct InitData {
     bool operator==(const InitData &data) const noexcept;
     bool operator!=(const InitData &data) const noexcept;
 };
+
+struct EndAgari;
+struct EndRyuuKyoKu;
 
 // 结束标志符，分为AGARI(可能多个，对应一炮多响)和RYUUKYOKU(普通流局/流局满贯/九种九牌/四风连打/四家立直/三家和了/四杠散了)，流局满贯也可能多个
 // 不记录owari，因为点数可以算出来，而我不关心段位分变化
@@ -61,6 +69,8 @@ struct EndData {
 
     bool is_agari() const noexcept;
     bool is_ryuukyoku() const noexcept;
+    const EndAgari *to_agari() const;
+    const EndRyuuKyoKu *to_ryuukyoku() const;
     MetaType get_meta_type() const;
 
     string str(StringType type) const;
@@ -73,15 +83,95 @@ protected:
     void init_from_xml(const string &name, const XmlMap &xmlMap);
 };
 
+/// @see https://docs.rs/mjlog/latest/mjlog/model/enum.Yaku.html
+enum YakuType: uint8_t {
+    MenzenTsumo = 0,
+    Riichi = 1,
+    Ippatsu = 2,
+    Chankan = 3,
+    Rinshankaihou = 4,
+    HaiteiTsumo = 5,
+    HouteiRon = 6,
+    Pinfu = 7,
+    Tanyao = 8,
+    Iipeikou = 9,
+    PlayerWindTon = 10,
+    PlayerWindNan = 11,
+    PlayerWindSha = 12,
+    PlayerWindPei = 13,
+    FieldWindTon = 14,
+    FieldWindNan = 15,
+    FieldWindSha = 16,
+    FieldWindPei = 17,
+    YakuhaiHaku = 18,
+    YakuhaiHatsu = 19,
+    YakuhaiChun = 20,
+    DoubleRiichi = 21,
+    Chiitoitsu = 22,
+    Chanta = 23,
+    Ikkitsuukan = 24,
+    SansyokuDoujun = 25,
+    SanshokuDoukou = 26,
+    Sankantsu = 27,
+    Toitoi = 28,
+    Sanannkou = 29,
+    Shousangen = 30,
+    Honroutou = 31,
+    Ryanpeikou = 32,
+    Junchan = 33,
+    Honiisou = 34,
+    Chiniisou = 35,
+    Renhou = 36,
+    Tenhou = 37,
+    Chiihou = 38,
+    Daisangen = 39,
+    Suuankou = 40,
+    SuuankouTanki = 41,
+    Tsuuiisou = 42,
+    Ryuuiisou = 43,
+    Chinroutou = 44,
+    Tyuurenpoutou = 45,
+    Tyuurenpoutou9 = 46,
+    Kokushimusou = 47,
+    Kokushimusou13 = 48,
+    Daisuushii = 49,
+    Syousuushii = 50,
+    Suukantsu = 51,
+    Dora = 52,
+    UraDora = 53,
+    AkaDora = 54,
+};
+
+// 从宝牌指示牌计算哪些牌是宝牌
+// 0-35: 1-9m
+// 36-71: 1-9p
+// 72-107: 1-9s
+// 108-123: 1-4z (东南西北)
+// 124-135: 5-7z (白发中)
+DoraMap get_dora_map(const DoraIndicator &indicator);
+
+// 16/52/88: 0m/0p/0s
+bool is_aka_dora(uint8_t hai);
+
+// 将2Byte的副露编码解析为原始牌
+array<uint8_t, 4> flatten_meld(uint16_t meld);
+
+// 将压缩副露编码展开为牌序列 (hai_compress + machi)，为计算宝牌做准备
+HaiFlatten flatten_hai(const HaiCompress &hai_compress, uint8_t machi=HaiType::NO_HAI);
+
+// 计算手牌有多少宝牌
+uint8_t get_dora_count_of_hai(const DoraIndicator &indicator, HaiFlatten hai_flatten);
+
+
 struct EndAgari : public EndData {
-    array<uint8_t, 13> m_hai;          // 此时是hai+m-machi, m编码为3位uint8_t，以MELD_TYPE开头
-    uint8_t m_machi;                   // 此时是hai+m-machi
-    uint8_t m_ten0;                    // 符
-    uint8_t m_ten2;                    // 类型
-    uint16_t m_ten1;                   // 打点/100（顺序换过来，节省字节）
-    bitset<55> m_yaku;                 // 役种，一共55种，用bitset标识节省空间
-    array<uint8_t, 5> m_doraHai;       // 宝牌指示牌
-    array<uint8_t, 5> m_doraHaiUra;    // 里宝牌指示牌
+    HaiCompress m_hai;                  // 此时是hai+m-machi, m编码为3位uint8_t，以MELD_TYPE开头
+    uint8_t m_machi;                    // 此时是hai+m-machi
+    uint8_t m_ten0;                     // 符
+    uint8_t m_ten2;                     // 类型
+    uint16_t m_ten1;                    // 打点/100（顺序换过来，节省字节）
+    bitset<55> m_yaku;                  // 役种，一共55种，用bitset标识节省空间
+    DoraIndicator m_doraHai;            // 宝牌指示牌
+    DoraIndicator m_doraHaiUra;         // 里宝牌指示牌
 
     static unique_ptr<EndData> from_bytes(Buffer &q);
     void to_bytes(Buffer &q) const;
@@ -91,13 +181,25 @@ struct EndAgari : public EndData {
     string str(StringType type) const;
     uint8_t get_who() const noexcept;
     uint8_t get_from_who() const noexcept;
+    bool is_tsumo() const noexcept;
+    bool is_meld() const noexcept;
+    bool is_yakuman() const noexcept;
+    bool is_richi() const noexcept;
+    int32_t get_score() const noexcept;
+    HaiFlatten get_hai_flatten() const;
+    uint8_t get_dora_cnt(const HaiFlatten &hai_flatten) const;
+    uint8_t get_dora_cnt() const;
+    uint8_t get_ura_dora_cnt(const HaiFlatten &hai_flatten) const;
+    uint8_t get_ura_dora_cnt() const;
+    uint8_t get_aka_dora_cnt(const HaiFlatten &hai_flatten) const;
+    uint8_t get_aka_dora_cnt() const;
     bool operator==(const EndAgari &data) const noexcept;
     bool operator!=(const EndAgari &data) const noexcept;
 };
 
 struct EndRyuuKyoKu : public EndData {
     // 可能包含NO_HAI
-    array<array<uint8_t, 13>, 4> m_hai;
+    array<HaiCompress, 4> m_hai;
 
     static unique_ptr<EndData> from_bytes(Buffer &q);
     void to_bytes(Buffer &q) const;

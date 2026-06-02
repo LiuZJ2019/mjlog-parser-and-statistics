@@ -21,7 +21,7 @@ struct MjlogGameContainer {
     vector<MjlogGame> m_games;
 
     void read_bytes(Buffer &q);
-    void write_bytes(Buffer &q, uint32_t start_idx=0, uint32_t end_idx=-1) const;
+    void write_bytes(Buffer &q, uint32_t start_idx=0, uint32_t end_idx=UINT32_MAX) const;
     void read_one_xml(string &str);
     void write_one_xml(string &str, uint32_t start_idx=0) const;
     bool operator==(const MjlogGameContainer &data) const noexcept;

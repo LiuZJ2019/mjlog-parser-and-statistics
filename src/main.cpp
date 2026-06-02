@@ -79,6 +79,14 @@ void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
     JsonContainer jsonContainer;
 
     EXECUTE_STATS(stats_richi_player_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_game_round, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_round_continue_oya, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_round_end_type, NUM_OCCUR_TIME)
+
+    EXECUTE_STATS(stats_agari_richi_ok_dora_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_agari_first_richi_ok_dora_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_agari_chasing_richi_ok_dora_num, NUM_OCCUR_TIME)
+    EXECUTE_STATS(stats_agari_be_chased_richi_ok_dora_num, NUM_OCCUR_TIME)
 
     EXECUTE_STATS(stats_richi_num, NUM_OCCUR_TIME)
     EXECUTE_STATS(stats_richi_ok_num, NUM_OCCUR_TIME)

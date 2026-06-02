@@ -62,6 +62,94 @@ map<int32_t, int32_t> stats_richi_player_num(const MjlogGameContainer &container
     return ans;
 }
 
+map<int32_t, int32_t> stats_game_round(const MjlogGameContainer &container)
+{
+    map<int32_t, int32_t> ans;
+    for (const auto &game: container.m_games) {
+        ans[game.m_rounds.size()] += 1;
+    }
+    return ans;
+}
+
+map<int32_t, int32_t> stats_round_continue_oya(const MjlogGameContainer &container)
+{
+    map<int32_t, int32_t> ans;
+    for (const auto &game: container.m_games) {
+        for (auto i = 0; i < game.m_rounds.size(); ++ i) {
+            if (i + 1 == game.m_rounds.size()) {
+                continue;
+            }
+            if (game.m_rounds[i].m_init.m_oya == game.m_rounds[i + 1].m_init.m_oya) {
+                ans[1] += 1;
+            } else {
+                ans[0] += 1;
+            }
+        }
+    }
+    return ans;
+}
+
+map<int32_t, int32_t> stats_round_end_type(const MjlogGameContainer &container)
+{
+    map<int32_t, int32_t> ans;
+    for (const auto &game: container.m_games) {
+        for (const auto &round_: game.m_rounds) {
+            if (round_.m_ends[0]->is_ryuukyoku()) {
+                ans[0] += 1;    // 0: 流局
+                continue;
+            }
+            for (const auto &end: round_.m_ends) {
+                if (!end) {
+                    break;
+                }
+                const EndAgari *agari = end->to_agari();
+                bool is_tsumo = agari->is_tsumo();
+                if (agari->is_richi()) {
+                    ans[1 + is_tsumo] += 1;     // 立直荣和/自摸
+                } else {
+                    if (!agari->is_meld()) {
+                        ans[3 + is_tsumo] += 1; // 门清默听荣和
+                    } else {
+                        ans[5 + is_tsumo] += 1; // 副露荣和
+                    }
+                }
+            }
+        }
+    }
+    return ans;
+}
+
+
+template <typename PlayerCond>
+map<int32_t, int32_t> stats_agari_dora_num_impl(const MjlogGameContainer &container, PlayerCond cond)
+{
+    map<int32_t, int32_t> ans;
+    for (const auto &game: container.m_games) {
+        for (const auto &round_: game.m_rounds) {
+            if (round_.m_ends[0]->is_ryuukyoku()) {
+                continue;
+            }
+            for (const auto &end: round_.m_ends) {
+                if (!end) {
+                    break;
+                }
+                const EndAgari *agari = end->to_agari();
+                if (cond(round_.m_players[agari->get_who()])) {
+                    auto hai_flatten = agari->get_hai_flatten();
+                    int32_t dora_cnt = agari->get_dora_cnt(hai_flatten) + agari->get_aka_dora_cnt(hai_flatten);
+                    ++ ans[dora_cnt];
+                }
+            }
+        }
+    }
+    return ans;
+}
+
+DEFINE_FUNC_NUM_OCCUR_TIME(stats_agari_richi_ok_dora_num, stats_agari_dora_num_impl, PlayerCondRichiOk)
+DEFINE_FUNC_NUM_OCCUR_TIME(stats_agari_first_richi_ok_dora_num, stats_agari_dora_num_impl, PlayerCondFirstRichiOk)
+DEFINE_FUNC_NUM_OCCUR_TIME(stats_agari_chasing_richi_ok_dora_num, stats_agari_dora_num_impl, PlayerCondChasingRichiOk)
+DEFINE_FUNC_NUM_OCCUR_TIME(stats_agari_be_chased_richi_ok_dora_num, stats_agari_dora_num_impl, PlayerCondBeChasedRichiOk)
+
 
 template <typename PlayerCond>
 map<int32_t, int32_t> stats_richi_num_impl(const MjlogGameContainer &container, PlayerCond cond)

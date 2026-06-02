@@ -22,8 +22,17 @@ map<int32_t, int32_t> func_name(const MjlogGameContainer &container);
 #define DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(func_name)  \
 map<int32_t, map<int32_t, int32_t> > func_name(const MjlogGameContainer &container);
 
-// 立直人数
+
 DECLARE_FUNC_NUM_OCCUR_TIME(stats_richi_player_num)                         // 立直的人数
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_game_round)                               // 每局麻将有多少小局
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_round_continue_oya)                       // 连庄数
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_round_end_type)                           // 终局类型（流局/立直荣和/立直自摸/默听荣和/默听自摸）
+
+// 胡牌玩家的宝牌数（只算表宝牌和红宝牌）
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_agari_richi_ok_dora_num)                  // 胡牌+立直的宝牌数
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_agari_first_richi_ok_dora_num)            // 胡牌+先制立直的宝牌数
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_agari_chasing_richi_ok_dora_num)          // 胡牌+追立直的宝牌数
+DECLARE_FUNC_NUM_OCCUR_TIME(stats_agari_be_chased_richi_ok_dora_num)        // 胡牌+被追立直的宝牌数
 
 // 立直巡目
 DECLARE_FUNC_NUM_OCCUR_TIME(stats_richi_num)                                // 立直的巡目数

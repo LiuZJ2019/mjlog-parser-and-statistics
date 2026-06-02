@@ -20,6 +20,27 @@
 
 ### 版本
 
+#### v1.1.0
+
+- **修复一个严重bug**：from_xml对EndAgari的宝牌处理有bug，导致v1.0.0的`.hskmjlog`数据宝牌内容错误
+
+- **新增如下算法**
+
+  - stats_game_round
+
+  - stats_round_continue_oya
+
+  - stats_round_end_type
+  - stats_agari_richi_ok_dora_num/stats_agari_first_richi_ok_dora_num/stats_agari_chasing_richi_ok_dora_num/stats_agari_be_chased_richi_ok_dora_num
+
+- 新增`YakuType`
+
+- 新增副露解码接口`flatten_meld`和宝牌计算接口get_dora_count_of_hai/is_aka_dora
+
+- 为`EndData`提供to_agari/to_ryuukyoku方法
+
+- 为`EndAgari`提供is_tsumo/is_meld/is_yakuman/is_richi/get_score方法，以及若干手牌/宝牌计算接口
+
 #### v1.0.1
 
 新增了若干算法，通过宏和模板减少重复代码
@@ -50,9 +71,9 @@
 │   │   └── ...
 ```
 
-天凤牌谱下载可以参考 [https://github.com/Apricot-S/houou-logs](https://github.com/Apricot-S/houou-logs) 
+天凤牌谱下载可以参考 [https://github.com/Apricot-S/houou-logs](https://github.com/Apricot-S/houou-logs) ， `hskmjlog_data/` 文件夹存放了我处理好的2025四人南凤凰桌牌谱，数据见 [https://github.com/LiuZJ2019/mjlog-parser-and-statistics/releases/tag/hskmjlog-v1.1.0](https://github.com/LiuZJ2019/mjlog-parser-and-statistics/releases/tag/hskmjlog-v1.1.0) 
 
-> 目前天凤似乎不支持 scraw*.zip 2025年及以前的牌谱下载了，我本地保存了处理好的2025年牌谱（仅含凤凰桌四人南），扔百度网盘了，欢迎大佬提供更全的牌谱。百度网盘只是权宜之计，如果有更全的牌谱数据，欢迎覆盖该下载链接 [https://pan.baidu.com/s/1RowQq39nq09YaAHyjGacjQ?pwd=0721](https://pan.baidu.com/s/1RowQq39nq09YaAHyjGacjQ?pwd=0721) 
+> 目前天凤似乎不支持 scraw*.zip 2025年及以前的牌谱下载了，我本地保存了处理好的2025年牌谱（仅含凤凰桌四人南）。考虑到中国网络问题，也扔一份百度网盘版本 [https://pan.baidu.com/s/1RowQq39nq09YaAHyjGacjQ?pwd=0721](https://pan.baidu.com/s/1RowQq39nq09YaAHyjGacjQ?pwd=0721) 
 
 
 

@@ -33,7 +33,7 @@ InitData InitData::from_bytes(Buffer &q)
     for (uint8_t i = 0; i < 4; ++i) {
         ten[i] = readFromBuf<int16_t>(q);
     }
-    array<array<uint8_t, 13>, 4> hai{};
+    array<HaiCompress, 4> hai{};
     for (uint8_t i = 0; i < 4; ++i) {
         for (uint8_t j = 0; j < 13; ++j) {
             hai[i][j] = q.front();
@@ -82,7 +82,7 @@ InitData InitData::from_xml(const string &name, const XmlMap &xmlMap)
             splitToVecInt(xmlMap, "hai2"),
             splitToVecInt(xmlMap, "hai3"),
     };
-    array<array<uint8_t, 13>, 4> hai{};
+    array<HaiCompress, 4> hai{};
     for (uint8_t i = 0; i < 4; ++i) {
         for (uint8_t j = 0; j < 13; ++j) {
             hai[i][j] = static_cast<uint8_t>(hai_[i][j]);
@@ -204,6 +204,22 @@ bool EndData::is_agari() const noexcept
 bool EndData::is_ryuukyoku() const noexcept
 {
     return MetaType::RYUUKYOKU <= m_type && m_type < MetaType::ROUND;
+}
+
+const EndAgari *EndData::to_agari() const
+{
+    if (!this->is_agari()) {
+        throw runtime_error("Invalid EndData::to_agari.");
+    }
+    return static_cast<const EndAgari *>(this);
+}
+
+const EndRyuuKyoKu *EndData::to_ryuukyoku() const
+{
+    if (!this->is_ryuukyoku()) {
+        throw runtime_error("Invalid EndData::to_agari.");
+    }
+    return static_cast<const EndRyuuKyoKu *>(this);
 }
 
 MetaType EndData::get_meta_type() const
@@ -344,6 +360,131 @@ bool EndData::operator!=(const EndData &data) const noexcept
     return !(*this == data);
 }
 
+
+DoraMap get_dora_map(const DoraIndicator &indicator)
+{
+    DoraMap ans{};
+    for (auto hai: indicator) {
+        if (hai != HaiType::NO_HAI && hai >= 136) {
+            throw runtime_error("Unknown hai: " + to_string(hai));
+        }
+        if (hai == HaiType::NO_HAI) {
+            break;
+        }
+        uint8_t hai_idx = hai >> 2;
+        switch (hai_idx) {
+            case 8:     // 9m
+            case 17:    // 9p
+            case 26:    // 9s
+                ++ ans[hai_idx - 8];
+                break;
+            case 30:    // 4z
+                ++ ans[27];
+                break;
+            case 33:    // 7z
+                ++ ans[31];
+                break;
+            default:
+                ++ ans[hai_idx + 1];
+                break;
+        }
+    }
+    return ans;
+}
+
+bool is_aka_dora(uint8_t hai)
+{
+    return hai == 16 || hai == 52 || hai == 88;
+}
+
+array<uint8_t, 4> flatten_meld(uint16_t meld)
+{
+    if (meld & (1 << 2)) {                  // MetaType::CHI
+        uint8_t t = meld >> 10;
+        uint8_t hai_type = t / 3;           // 1-7m 1-7p 1-7s
+        // uint8_t first_second_third = t % 3; // CHI first/second/third
+        uint8_t color = hai_type / 7;       // m/p/s
+        uint8_t num = hai_type % 7;         // 1-7 color
+        uint8_t first = (color * 9 + num) * 4 + 4 * 0 + ((meld & 0b0000'0000'0001'1000) >> 3);
+        uint8_t second = (color * 9 + num) * 4 + 4 * 1 + ((meld & 0b0000'0000'0110'0000) >> 5);
+        uint8_t third = (color * 9 + num) * 4 + 4 * 2 + ((meld & 0b0000'0001'1000'0000) >> 7);
+        return {first, second, third, HaiType::NO_HAI};
+    } else if (meld & (1 << 3)) {           // MetaType::PON
+        uint8_t t = meld >> 9;
+        uint8_t base = (t / 3) * 4;
+        array<uint8_t, 4> ans = {
+            base,
+            static_cast<uint8_t>(base + 1),
+            static_cast<uint8_t>(base + 2),
+            static_cast<uint8_t>(base + 3)
+        };
+        for (uint8_t i = ((meld & 0b0110'0000) >> 5); i < 3; ++i) {
+            ans[i] = ans[i + 1];
+        }
+        ans[3] = HaiType::NO_HAI;
+        return ans;
+    } else if (meld & (1 << 4)) {           // MetaType::KA_KAN
+        uint8_t t = meld >> 9;
+        uint8_t base = (t / 3) * 4;
+        return {
+            base,
+            static_cast<uint8_t>(base + 1),
+            static_cast<uint8_t>(base + 2),
+            static_cast<uint8_t>(base + 3)
+        };
+    } else if (meld & (1 << 5)) {           // MetaType::PEI
+        throw runtime_error("not support three-player now");
+    } else {                                // MetaType::AN_KAN or MetaType::MIN_KAN
+        uint8_t base = (meld >> 8) & 0b1111'1100;
+        return {
+            base,
+            static_cast<uint8_t>(base + 1),
+            static_cast<uint8_t>(base + 2),
+            static_cast<uint8_t>(base + 3)
+        };
+    }
+}
+
+HaiFlatten flatten_hai(const HaiCompress &hai_compress, uint8_t machi)
+{
+    HaiFlatten ans;
+    ans.fill(HaiType::NO_HAI);
+    uint8_t ans_idx = 0;
+
+    for (uint8_t i = 0; i < 13; ++i) {
+        auto hai = hai_compress[i];
+        if (hai == HaiType::NO_HAI) {
+            break;
+        }
+        if (hai == HaiType::MELD_TAG) {
+            array<uint8_t, 4> meld_hai = flatten_meld(hai_compress[i + 1] | (hai_compress[i + 2] << 8));
+            for (const auto hai2: meld_hai) {
+                if (hai2 != HaiType::NO_HAI) {
+                    ans[ans_idx++] = hai2;
+                }
+            }
+            i += 2;
+        } else {
+            ans[ans_idx++] = hai;
+        }
+    }
+    return ans;
+}
+
+uint8_t get_dora_count_of_hai(const DoraIndicator &indicator, HaiFlatten hai_flatten)
+{
+    uint8_t ans = 0;
+    auto dora_map = get_dora_map(indicator);
+    for (const auto hai: hai_flatten) {
+        if (hai == HaiType::NO_HAI) {
+            break;
+        }
+        ans += dora_map[hai / 4];
+    }
+    return ans;
+}
+
+
 unique_ptr <EndData> EndAgari::from_bytes(Buffer &q)
 {
     EndAgari ans;
@@ -392,7 +533,7 @@ void EndAgari::to_bytes(Buffer &q) const
 
 unique_ptr<EndData> EndAgari::from_xml(const string &name, const XmlMap &xmlMap)
 {
-    array<uint8_t, 13> hai{};
+    HaiCompress hai{};
     hai.fill(HaiType::NO_HAI);
     uint8_t machi = get_u8_from_attrs(xmlMap, "machi");
     auto hai_ = splitToVecInt(xmlMap, "hai");
@@ -405,6 +546,9 @@ unique_ptr<EndData> EndAgari::from_xml(const string &name, const XmlMap &xmlMap)
     }
     auto m = splitToVecInt(xmlMap, "m");
     for (auto meld: m) {
+        if (idx + 2 >= 13) {
+            throw runtime_error("EndAgari::from_xml: hai index overflow");
+        }
         hai[idx] = HaiType::MELD_TAG;
         hai[idx + 1] = meld & 0xff;
         hai[idx + 2] = meld >> 8;
@@ -420,13 +564,13 @@ unique_ptr<EndData> EndAgari::from_xml(const string &name, const XmlMap &xmlMap)
     for (uint32_t i = 0; i < yakuman_.size(); i += 1) {
         yaku.set(yakuman_[i]);
     }
-    array<uint8_t, 5> doraHai{};
+    DoraIndicator doraHai{};
     doraHai.fill(HaiType::NO_HAI);
-    array<uint8_t, 5> doraHaiUra{};
+    DoraIndicator doraHaiUra{};
     doraHaiUra.fill(HaiType::NO_HAI);
     auto doraHai_ = splitToVecInt(xmlMap, "doraHai");
     auto doraHaiUra_ = splitToVecInt(xmlMap, "doraHaiUra");
-    for (uint32_t i = 0; i < doraHai.size(); ++i) {
+    for (uint32_t i = 0; i < doraHai_.size(); ++i) {
         doraHai[i] = doraHai_[i];
     }
     for (uint32_t i = 0; i < doraHaiUra_.size(); ++i) {
@@ -522,6 +666,73 @@ uint8_t EndAgari::get_from_who() const noexcept
     return ((m_type - MetaType::AGARI) / 4) % 4;
 }
 
+bool EndAgari::is_tsumo() const noexcept
+{
+    return get_who() == get_from_who();
+}
+
+bool EndAgari::is_meld() const noexcept
+{
+    return std::any_of(m_hai.begin(), m_hai.end(), [](const auto& hai) { return hai == HaiType::MELD_TAG; });
+}
+
+bool EndAgari::is_yakuman() const noexcept
+{
+    return MetaType::AGARI_YAKUMAN <= m_type && m_type < MetaType::RYUUKYOKU;
+}
+
+bool EndAgari::is_richi() const noexcept
+{
+    return m_yaku.test(YakuType::Riichi);
+}
+
+int32_t EndAgari::get_score() const noexcept
+{
+    return m_ten1 * 100;
+}
+
+HaiFlatten EndAgari::get_hai_flatten() const
+{
+    return flatten_hai(m_hai, m_machi);
+}
+
+uint8_t EndAgari::get_dora_cnt(const HaiFlatten &hai_flatten) const
+{
+    return get_dora_count_of_hai(m_doraHai, hai_flatten);
+}
+
+uint8_t EndAgari::get_dora_cnt() const
+{
+    return get_dora_cnt(get_hai_flatten());
+}
+
+uint8_t EndAgari::get_ura_dora_cnt(const HaiFlatten &hai_flatten) const
+{
+    return get_dora_count_of_hai(m_doraHaiUra, hai_flatten);
+}
+
+uint8_t EndAgari::get_ura_dora_cnt() const
+{
+    return get_ura_dora_cnt(get_hai_flatten());
+}
+
+uint8_t EndAgari::get_aka_dora_cnt(const HaiFlatten &hai_flatten) const
+{
+    uint8_t ans = 0;
+    for (const auto hai: hai_flatten) {
+        if (hai == HaiType::NO_HAI) {
+            break;
+        }
+        ans += is_aka_dora(hai);
+    }
+    return ans;
+}
+
+uint8_t EndAgari::get_aka_dora_cnt() const
+{
+    return get_aka_dora_cnt(get_hai_flatten());
+}
+
 bool EndAgari::operator==(const EndAgari &data) const noexcept
 {
     return (m_hai == data.m_hai &&
@@ -574,6 +785,7 @@ unique_ptr <EndData> EndRyuuKyoKu::from_xml(const string &name, const XmlMap &xm
             splitToVecInt(xmlMap, "hai3"),
     };
     for (uint32_t i = 0; i < 4; ++i) {
+        ans.m_hai[i].fill(HaiType::NO_HAI);
         for (uint32_t j = 0; j < hai[i].size(); ++j) {
             ans.m_hai[i][j] = hai[i][j];
         }
@@ -827,8 +1039,9 @@ void RoundData::preprocess_player_status()
             break;
         }
         if (end_item->is_agari()) {
-            uint8_t who = static_cast<EndAgari *>(end_item.get())->get_who();
-            uint8_t fromWho = static_cast<EndAgari *>(end_item.get())->get_from_who();
+            const auto agari = end_item->to_agari();
+            uint8_t who = agari->get_who();
+            uint8_t fromWho = agari->get_from_who();
             bool is_ron = who != fromWho;
             if (is_ron) {
                 m_players[who].agari = true;
