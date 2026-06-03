@@ -219,6 +219,7 @@ enum StatusAgariType: uint8_t {
 };
 
 struct PlayerStatus {
+    bool oya: 1;                        // 是否是庄家
     bool richi: 1;                      // 是否立直，无论是否成功
     bool richi_ok: 1;                   // 是否立直成功
     bool first_richi: 1;                // 是否先制立直，无论是否成功（前提: richi == true）

@@ -20,6 +20,10 @@
 
 ### 版本
 
+#### v1.1.1
+
+- 新增庄家/闲家立直的局收支/结局相关算法
+
 #### v1.1.0
 
 - **修复一个严重bug**：from_xml对EndAgari的宝牌处理有bug，导致v1.0.0的`.hskmjlog`数据宝牌内容错误
@@ -166,9 +170,9 @@ convert_xml_to_hskmjlog time: 258.65s
 
 ```
 Data loaded success. Games: 178897
-Data load time: 2.09373s
-do_stats_algorithm success. Algorithm: 61
-do_stats_algorithm time: 2.60772s
+Data load time: 2.09623s
+do_stats_algorithm success. Algorithm: 94
+do_stats_algorithm time: 4.29476s
 ```
 
 

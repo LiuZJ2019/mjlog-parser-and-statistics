@@ -1006,6 +1006,7 @@ void RoundData::preprocess_player_status()
     uint8_t richi_num = 0;
     uint8_t prev_richi[4] = {UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX};
     array<uint8_t, 4> sub_round_num{};  // 总巡目数
+
     for (const auto &action: m_actions) {
         uint8_t t = action.bytes[0];
         uint8_t who = t & 0x03;
@@ -1032,6 +1033,7 @@ void RoundData::preprocess_player_status()
     }
     for (uint32_t i = 0; i < 4; ++i) {
         m_players[i].end_num = sub_round_num[i];
+        m_players[i].oya = (i == m_init.m_oya);
     }
 
     for (const auto &end_item: m_ends) {

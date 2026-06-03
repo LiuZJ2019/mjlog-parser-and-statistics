@@ -27,22 +27,32 @@ func_name(const MjlogGameContainer &container)                          \
     return func_impl(container, ##__VA_ARGS__);                         \
 }
 
-auto PlayerCondTrue = [](const PlayerStatus &player) { return true; };
-auto PlayerCondRichi = [](const PlayerStatus &player) { return player.richi; };
-auto PlayerCondRichiOk = [](const PlayerStatus &player) { return player.richi_ok; };
-auto PlayerCondFirstRichi = [](const PlayerStatus &player) { return player.first_richi; };
-auto PlayerCondFirstRichiOk = [](const PlayerStatus &player) { return player.first_richi && player.richi_ok; };
-auto PlayerCondChasingRichi = [](const PlayerStatus &player) { return player.chasing_richi; };
-auto PlayerCondChasingRichiOk = [](const PlayerStatus &player) { return player.chasing_richi && player.richi_ok; };
-auto PlayerCondBeChasedRichi = [](const PlayerStatus &player) { return player.be_chased_richi; };
-auto PlayerCondBeChasedRichiOk = [](const PlayerStatus &player) { return player.be_chased_richi_ok; };
+using PlayerCond = bool(const PlayerStatus &player);
 
-auto PlayerCondRon = [](const PlayerStatus &player) { return player.agari && player.agari_type != StatusAgariType::TSUMO; };
-auto PlayerCondTsumo = [](const PlayerStatus &player) { return player.agari && player.agari_type == StatusAgariType::TSUMO; };
-auto PlayerCondBeRon = [](const PlayerStatus &player) { return player.be_ron; };
-auto PlayerCondBeTsumo = [](const PlayerStatus &player) { return player.be_tsumo; };
-auto PlayerCondDraw = [](const PlayerStatus &player) { return player.draw && !player.agari; };
-auto PlayerCondRyuukyoku = [](const PlayerStatus &player) { return player.ryuukyoku_type != 0; };
+#define PlayerAnd(cond1, cond2) \
+    [](const PlayerStatus& player) -> bool { return cond1(player) && cond2(player); }
+
+#define PlayerOr(cond1, cond2) \
+    [](const PlayerStatus& player) -> bool { return cond1(player) || cond2(player); }
+
+constexpr auto PlayerCondTrue = [](const PlayerStatus &player) { return true; };
+constexpr auto PlayerCondOya = [](const PlayerStatus &player) { return player.oya; };
+constexpr auto PlayerCondNotOya = [](const PlayerStatus &player) { return !player.oya; };
+constexpr auto PlayerCondRichi = [](const PlayerStatus &player) { return player.richi; };
+constexpr auto PlayerCondRichiOk = [](const PlayerStatus &player) { return player.richi_ok; };
+constexpr auto PlayerCondFirstRichi = [](const PlayerStatus &player) { return player.first_richi; };
+constexpr auto PlayerCondFirstRichiOk = [](const PlayerStatus &player) { return player.first_richi && player.richi_ok; };
+constexpr auto PlayerCondChasingRichi = [](const PlayerStatus &player) { return player.chasing_richi; };
+constexpr auto PlayerCondChasingRichiOk = [](const PlayerStatus &player) { return player.chasing_richi && player.richi_ok; };
+constexpr auto PlayerCondBeChasedRichi = [](const PlayerStatus &player) { return player.be_chased_richi; };
+constexpr auto PlayerCondBeChasedRichiOk = [](const PlayerStatus &player) { return player.be_chased_richi_ok; };
+
+constexpr auto PlayerCondRon = [](const PlayerStatus &player) { return player.agari && player.agari_type != StatusAgariType::TSUMO; };
+constexpr auto PlayerCondTsumo = [](const PlayerStatus &player) { return player.agari && player.agari_type == StatusAgariType::TSUMO; };
+constexpr auto PlayerCondBeRon = [](const PlayerStatus &player) { return player.be_ron; };
+constexpr auto PlayerCondBeTsumo = [](const PlayerStatus &player) { return player.be_tsumo; };
+constexpr auto PlayerCondDraw = [](const PlayerStatus &player) { return player.draw && !player.agari; };
+constexpr auto PlayerCondRyuukyoku = [](const PlayerStatus &player) { return player.ryuukyoku_type != 0; };
 
 
 map<int32_t, int32_t> stats_richi_player_num(const MjlogGameContainer &container)
@@ -66,7 +76,7 @@ map<int32_t, int32_t> stats_game_round(const MjlogGameContainer &container)
 {
     map<int32_t, int32_t> ans;
     for (const auto &game: container.m_games) {
-        ans[game.m_rounds.size()] += 1;
+        ans[static_cast<int32_t>(game.m_rounds.size())] += 1;
     }
     return ans;
 }
@@ -120,7 +130,6 @@ map<int32_t, int32_t> stats_round_end_type(const MjlogGameContainer &container)
 }
 
 
-template <typename PlayerCond>
 map<int32_t, int32_t> stats_agari_dora_num_impl(const MjlogGameContainer &container, PlayerCond cond)
 {
     map<int32_t, int32_t> ans;
@@ -151,7 +160,6 @@ DEFINE_FUNC_NUM_OCCUR_TIME(stats_agari_chasing_richi_ok_dora_num, stats_agari_do
 DEFINE_FUNC_NUM_OCCUR_TIME(stats_agari_be_chased_richi_ok_dora_num, stats_agari_dora_num_impl, PlayerCondBeChasedRichiOk)
 
 
-template <typename PlayerCond>
 map<int32_t, int32_t> stats_richi_num_impl(const MjlogGameContainer &container, PlayerCond cond)
 {
     map<int32_t, int32_t> ans;
@@ -177,9 +185,8 @@ DEFINE_FUNC_NUM_OCCUR_TIME(stats_be_chased_richi_num, stats_richi_num_impl, Play
 DEFINE_FUNC_NUM_OCCUR_TIME(stats_be_chased_richi_ok_num, stats_richi_num_impl, PlayerCondBeChasedRichiOk)
 
 
-template <typename PlayerCond1, typename PlayerCond2>
 map<int32_t, map<int32_t, int32_t> >
-stats_richi_gain_impl(const MjlogGameContainer &container, PlayerCond1 cond1, PlayerCond2 cond2)
+stats_richi_gain_impl(const MjlogGameContainer &container, PlayerCond cond1, PlayerCond cond2)
 {
     map<int32_t, map<int32_t, int32_t> > ans;
     for (const auto &game: container.m_games) {
@@ -199,9 +206,8 @@ stats_richi_gain_impl(const MjlogGameContainer &container, PlayerCond1 cond1, Pl
 }
 
 
-template <typename PlayerCond1, typename PlayerCond2>
 map<int32_t, map<int32_t, int32_t> >
-stats_richi_rate_impl(const MjlogGameContainer &container, PlayerCond1 cond1, PlayerCond2 cond2)
+stats_richi_rate_impl(const MjlogGameContainer &container, PlayerCond cond1, PlayerCond cond2)
 {
     map<int32_t, map<int32_t, int32_t> > ans;
     for (const auto &game: container.m_games) {
@@ -228,12 +234,44 @@ DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_be_tsumo_gain, stats_richi_gain
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_draw_gain, stats_richi_gain_impl, PlayerCondRichi, PlayerCondDraw)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_ryuukyoku_gain, stats_richi_gain_impl, PlayerCondRichi, PlayerCondRyuukyoku)
 
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondTrue)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_ron_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_tsumo_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_be_ron_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondBeRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_be_tsumo_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondBeTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_draw_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondDraw)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_ryuukyoku_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondRyuukyoku)
+
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondTrue)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_ron_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_tsumo_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_be_ron_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondBeRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_be_tsumo_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondBeTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_draw_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondDraw)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_ryuukyoku_gain, stats_richi_gain_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondRyuukyoku)
+
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_ron_rate, stats_richi_rate_impl, PlayerCondRichi, PlayerCondRon)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_tsumo_rate, stats_richi_rate_impl, PlayerCondRichi, PlayerCondTsumo)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_be_ron_rate, stats_richi_rate_impl, PlayerCondRichi, PlayerCondBeRon)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_be_tsumo_rate, stats_richi_rate_impl, PlayerCondRichi, PlayerCondBeTsumo)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_draw_rate, stats_richi_rate_impl, PlayerCondRichi, PlayerCondDraw)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_ryuukyoku_rate, stats_richi_rate_impl, PlayerCondRichi, PlayerCondRyuukyoku)
+
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondTrue)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_ron_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_tsumo_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_be_ron_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondBeRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_be_tsumo_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondBeTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_draw_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondDraw)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_ryuukyoku_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondOya, PlayerCondRichi), PlayerCondRyuukyoku)
+
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondTrue)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_ron_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_tsumo_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_be_ron_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondBeRon)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_be_tsumo_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondBeTsumo)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_draw_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondDraw)
+DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_ryuukyoku_rate, stats_richi_rate_impl, PlayerAnd(PlayerCondNotOya, PlayerCondRichi), PlayerCondRyuukyoku)
 
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_first_richi_n_gain, stats_richi_gain_impl, PlayerCondFirstRichi, PlayerCondTrue)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_first_richi_n_ron_gain, stats_richi_gain_impl, PlayerCondFirstRichi, PlayerCondRon)
