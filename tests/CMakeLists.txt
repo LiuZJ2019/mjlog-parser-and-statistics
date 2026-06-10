@@ -37,11 +37,13 @@ endfunction()
 
 add_test_module(parser)
 add_test_module(parser_action)
+add_test_module(parser_tenpai)
 
 # ========== 新增：合并所有测试的单一目标 ==========
 set(ALL_TEST_SRCS
         test_parser.cpp
         test_parser_action.cpp
+        test_parser_tenpai.cpp
         )
 
 add_executable(test_all ${ALL_TEST_SRCS})
