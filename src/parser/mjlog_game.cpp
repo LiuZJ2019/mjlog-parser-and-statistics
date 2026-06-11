@@ -174,14 +174,14 @@ void EndData::to_bytes(Buffer &q) const
     }
 }
 
-unique_ptr <EndData> EndData::from_xml(const string &name, const XmlMap &xmlMap)
+unique_ptr<EndData> EndData::from_xml(const string &name, const XmlMap &xmlMap)
 {
     if (name == "AGARI") {
         return EndAgari::from_xml(name, xmlMap);
     } else if (name == "RYUUKYOKU") {
         return EndRyuuKyoKu::from_xml(name, xmlMap);
     } else {
-        throw runtime_error("unknown type in EndData::from_bytes: " + name);
+        throw runtime_error("unknown type in EndData::from_xml: " + name);
     }
 }
 
@@ -192,7 +192,7 @@ void EndData::to_xml(string &str) const
     } else if (is_ryuukyoku()) {
         static_cast<const EndRyuuKyoKu *>(this)->to_xml(str);
     } else {
-        throw runtime_error("unknown type in EndData::to_bytes: " + to_string(m_type));
+        throw runtime_error("unknown type in EndData::to_xml: " + to_string(m_type));
     }
 }
 
@@ -1099,8 +1099,7 @@ string RoundData::str(StringType type) const
 
 int32_t RoundData::get_last_end_idx() const
 {
-    int32_t idx;
-    for (idx = 3; idx >= 0; --idx) {
+    for (int32_t idx = 3; idx >= 0; --idx) {
         if (m_ends[idx]) {
             return idx;
         }

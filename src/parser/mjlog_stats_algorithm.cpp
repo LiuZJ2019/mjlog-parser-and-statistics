@@ -85,7 +85,7 @@ map<int32_t, int32_t> stats_round_continue_oya(const MjlogGameContainer &contain
 {
     map<int32_t, int32_t> ans;
     for (const auto &game: container.m_games) {
-        for (auto i = 0; i < game.m_rounds.size(); ++ i) {
+        for (uint32_t i = 0; i < game.m_rounds.size(); ++ i) {
             if (i + 1 == game.m_rounds.size()) {
                 continue;
             }

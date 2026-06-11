@@ -10,6 +10,7 @@
  */
 #include <cmath>
 #include <fstream>
+#include <sstream>
 #include <iomanip>
 #include <charconv>
 #include "util.h"

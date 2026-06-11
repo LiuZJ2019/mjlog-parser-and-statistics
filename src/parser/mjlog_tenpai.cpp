@@ -183,7 +183,7 @@ void TenPaiCheck::preprocess()
 
 uint8_t TenPaiCheck::get_ten_pai_yao13(const Hasaki::HaiMsg &hai)
 {
-    uint8_t cnt[4] = {};    // type-0/type-1/type-2/type-3
+    uint8_t cnt[5] = {};    // type-0/type-1/type-2/type-3/type-4
     uint8_t type0_idx = TEN_PAI_YAO13;
     static constexpr array<uint8_t, 13> yao13_idx = {0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33};
     for (auto idx: yao13_idx) {

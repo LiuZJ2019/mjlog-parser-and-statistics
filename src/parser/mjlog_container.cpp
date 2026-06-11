@@ -87,7 +87,7 @@ bool MjlogGameContainer::test_xml_output() const
         game.to_xml(xml_str);
         MjlogGame new_game = MjlogGame::from_xml(xml_str);
         if (game != new_game) {
-            cerr << "In MjlogGameContainer::test_bytes_output failure:";
+            cerr << "In MjlogGameContainer::test_xml_output failure:";
             cerr << game.str(XML) << endl;
             cerr <<  new_game.str(BYTE) << endl;
             return false;
