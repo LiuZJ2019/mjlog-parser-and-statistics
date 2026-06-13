@@ -202,6 +202,8 @@ void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
     EXECUTE_STATS(stats_be_chased_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_be_chased_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
 
+    EXECUTE_STATS(stats_richi_tenpai_content, BIT_SET_TO_OCCUR_TIME)
+
     auto stats_end = steady_clock::now();
     auto stats_us = duration_cast<microseconds>(stats_end - stats_start).count();
     cout << "do_stats_algorithm success. Algorithm: " << jsonContainer.all_data.size() << endl;

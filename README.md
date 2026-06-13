@@ -20,6 +20,13 @@
 
 ### 版本
 
+#### v1.2.0
+
+- 新增高效听牌判断模块（算法设计理论见 `doc/tenpai_algorithm.md` ，代码见 `mjlog_tenpai.*` ），即 `TenPaiCheck` 类。该模块可以独立于本项目工程使用。
+-  `TenPaiCheck` 类提供 `get_all_ten_pai` 接口判断当前是否听牌，并返回所有待牌。注意，**调用该接口前必须手动执行**过 `preprocess` ！ `preprocess` 会进行预计算，通过空间+单次预计算时间（release模式下10-20ms）换每次计算的时间开销。
+- 新增 `RoundTracer` 模块，能够高效追踪每小局的每个Action执行后的状态。
+- 新增立直听牌分布的算法 `stats_richi_tenpai_content` 。
+
 #### v1.1.1
 
 - 新增庄家/闲家立直的局收支/结局相关算法

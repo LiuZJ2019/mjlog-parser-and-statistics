@@ -92,7 +92,12 @@ struct HaiMsg {
     uint8_t all_cnt[4];     // man_zu/pin_zu/sou_zu/ji_hai
     uint8_t meld_cnt;
 
-    HaiMsg()=default;
+    HaiMsg()
+        : all_hai{}
+        , all_cnt{}
+        , meld_cnt{}
+    {
+    };
     HaiMsg(const HaiMsg &)=default;
     void add_hai(uint8_t hai) {
         uint8_t hai_real = hai / 4;
@@ -102,6 +107,9 @@ struct HaiMsg {
         }
         ++ all_hai[hai_real];
         ++ all_cnt[color_real];
+        if (all_hai[hai_real] > 4) {
+            throw runtime_error("HaiMsg::add_hai: Invalid increase");
+        }
     }
     void del_hai(uint8_t hai) {
         uint8_t hai_real = hai / 4;
@@ -115,9 +123,9 @@ struct HaiMsg {
             throw runtime_error("HaiMsg::del_hai: Invalid decrease");
         }
     }
-    void meld_hai(uint8_t hai[4]) {
+    void meld_hai(uint8_t hai[4], uint8_t no_ten_pai_tag) {
         for (uint8_t i = 0; i < 4; ++ i) {
-            if (hai[i] == NO_TEN_PAI) {
+            if (hai[i] == no_ten_pai_tag) {
                 break;
             }
             del_hai(hai[i]);
@@ -140,6 +148,7 @@ struct TenPaiCheck {
     static inline std::vector<TenPaiState> state;
 
     static void preprocess();
+    // Attention: must execute TenPaiCheck::preprocess before!
     static AllTenHai get_all_ten_pai(const HaiMsg &hai);
 
     static bool check_agari_3n_a0(const uint8_t hai[9]);
