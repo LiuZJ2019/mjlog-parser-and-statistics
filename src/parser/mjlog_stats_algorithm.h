@@ -22,6 +22,9 @@ map<int32_t, int32_t> func_name(const MjlogGameContainer &container);
 #define DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(func_name)  \
 map<int32_t, map<int32_t, int32_t> > func_name(const MjlogGameContainer &container);
 
+#define DECLARE_FUNC_HAI_BIT_SET_TO_OCCUR_TIME(func_name)  \
+map<int32_t, map<uint64_t, int32_t> > func_name(const MjlogGameContainer &container);
+
 
 DECLARE_FUNC_NUM_OCCUR_TIME(stats_richi_player_num)                         // 立直的人数
 DECLARE_FUNC_NUM_OCCUR_TIME(stats_game_round)                               // 每局麻将有多少小局
@@ -80,6 +83,7 @@ DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_draw_rate)                // �
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_richi_n_ryuukyoku_rate)           // 第n巡立直的流局率
 
 // 庄家立直结局
+DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_rate)                 // 第n巡庄家立直率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_ron_rate)             // 第n巡庄家立直的荣和率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_tsumo_rate)           // 第n巡庄家立直的自摸率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_be_ron_rate)          // 第n巡庄家立直的铳率
@@ -88,6 +92,7 @@ DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_draw_rate)            // �
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_oya_richi_n_ryuukyoku_rate)       // 第n巡庄家立直的流局率
 
 // 闲家立直结局
+DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_rate)             // 第n巡闲家立直的率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_ron_rate)         // 第n巡闲家立直的荣和率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_tsumo_rate)       // 第n巡闲家立直的自摸率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_not_oya_richi_n_be_ron_rate)      // 第n巡闲家立直的铳率
@@ -145,6 +150,8 @@ DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_be_ron_rate)        
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_be_tsumo_rate)      // 第n巡被追立直的被自摸率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_draw_rate)          // 第n巡被追立直的纯横移动率
 DECLARE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_ryuukyoku_rate)     // 第n巡被追立直的流局率
+
+DECLARE_FUNC_HAI_BIT_SET_TO_OCCUR_TIME(stats_richi_tenpai_content)              // 立直听哪些牌
 
 }   // namespace Hasaki
 

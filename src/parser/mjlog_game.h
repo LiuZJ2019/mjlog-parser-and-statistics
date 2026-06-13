@@ -21,6 +21,7 @@
 #include <bitset>
 #include "parser/mjlog_action.h"
 #include "parser/mjlog_xml_parser.h"
+#include "parser/mjlog_tenpai.h"
 
 
 namespace Hasaki {
@@ -269,6 +270,23 @@ struct MjlogGame {
     string str(StringType type) const;
     bool operator==(const MjlogGame &data) const noexcept;
     bool operator!=(const MjlogGame &data) const noexcept;
+};
+
+
+// 按照牌局先后顺序模拟每次行为后的状态，用于追踪复盘
+struct RoundTracer {
+    const RoundData &m_data;
+    vector<Action>::const_iterator m_it;    // Action的迭代器
+    array<uint8_t, 4> m_sub_round;          // 当前巡目数，每摸牌一次+1
+    array<int16_t, 4> m_ten;                // 玩家的当前点棒数（除以100），立直成功后会变动
+    HaiMsg m_hai_public;                    // 所有人可见的牌河，包括副露+切牌+宝牌指示牌
+    array<HaiMsg, 4> m_hai_private;         // 玩家的手牌
+    array<uint8_t, 5> m_dora;               // 宝牌
+    array<bool, 4> m_real_meld;             // 记录玩家是否为非暗杠的副露
+
+    RoundTracer(const RoundData &data);
+    // 模拟m_it对应的Action，如果目前执行完了所有Action，返回false，否则返回true
+    bool do_action();
 };
 
 }   // namespace Hasaki

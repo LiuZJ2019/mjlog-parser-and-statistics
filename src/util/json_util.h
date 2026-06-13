@@ -30,7 +30,8 @@ using std::variant;
 
 #define JSON_TYPE_LIST          \
     X(NUM_OCCUR_TIME)           \
-    X(NUM_TO_MEAN_STD_SAMPLE)
+    X(NUM_TO_MEAN_STD_SAMPLE)   \
+    X(BIT_SET_TO_OCCUR_TIME)
 
 enum class JsonOutputDataType {
 #define X(name) name,
@@ -40,7 +41,8 @@ enum class JsonOutputDataType {
 
 using JsonOutputData = variant<
     map<int32_t, int32_t>,
-    map<int32_t, map<int32_t, int32_t> >
+    map<int32_t, map<int32_t, int32_t> >,
+    map<int32_t, map<uint64_t, int32_t> >
 >;
 
 struct JsonContainer {

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <fstream>
 #include <filesystem>   // 新增：用于路径校验与拼接
+#include "parser/mjlog_tenpai.h"
 #include "parser/mjlog_stats_algorithm.h"
 #include "util/json_util.h"
 
@@ -73,6 +74,18 @@ bool convert_xml_to_hskmjlog(const string &input_dir, const string &output_dir, 
     jsonContainer.add_data(#method, JsonOutputDataType::data_type, temp_data);  \
 }
 
+void ten_pai_check_preprocess()
+{
+    auto stats_start = steady_clock::now();
+
+    TenPaiCheck::preprocess();
+
+    auto stats_end = steady_clock::now();
+    auto stats_us = duration_cast<microseconds>(stats_end - stats_start).count();
+    cout << "ten_pai_check_preprocess success." << endl;
+    cout << "ten_pai_check_preprocess time: " << (stats_us / 1'000'000.0) << "s" << endl;
+}
+
 void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
 {
     auto stats_start = steady_clock::now();
@@ -128,6 +141,7 @@ void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
     EXECUTE_STATS(stats_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
 
+    EXECUTE_STATS(stats_oya_richi_n_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_oya_richi_n_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_oya_richi_n_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_oya_richi_n_be_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
@@ -135,6 +149,7 @@ void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
     EXECUTE_STATS(stats_oya_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_oya_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
 
+    EXECUTE_STATS(stats_not_oya_richi_n_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_not_oya_richi_n_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_not_oya_richi_n_tsumo_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_not_oya_richi_n_be_ron_rate, NUM_TO_MEAN_STD_SAMPLE)
@@ -187,9 +202,11 @@ void do_stats_algorithm(const MjlogGameContainer &container, const string &path)
     EXECUTE_STATS(stats_be_chased_richi_n_draw_rate, NUM_TO_MEAN_STD_SAMPLE)
     EXECUTE_STATS(stats_be_chased_richi_n_ryuukyoku_rate, NUM_TO_MEAN_STD_SAMPLE)
 
-    cout << "do_stats_algorithm success. Algorithm: " << jsonContainer.all_data.size() << endl;
+    EXECUTE_STATS(stats_richi_tenpai_content, BIT_SET_TO_OCCUR_TIME)
+
     auto stats_end = steady_clock::now();
     auto stats_us = duration_cast<microseconds>(stats_end - stats_start).count();
+    cout << "do_stats_algorithm success. Algorithm: " << jsonContainer.all_data.size() << endl;
     cout << "do_stats_algorithm time: " << (stats_us / 1'000'000.0) << "s" << endl;
 
     ofstream ofs(path);
@@ -269,6 +286,7 @@ int main(int argc, char* argv[])
         }
 
         auto container = load_main_data(input_dir, "." + suffix);
+        ten_pai_check_preprocess();
         do_stats_algorithm(container, output_json);
     }
     else {

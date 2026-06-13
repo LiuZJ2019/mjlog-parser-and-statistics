@@ -174,14 +174,14 @@ void EndData::to_bytes(Buffer &q) const
     }
 }
 
-unique_ptr <EndData> EndData::from_xml(const string &name, const XmlMap &xmlMap)
+unique_ptr<EndData> EndData::from_xml(const string &name, const XmlMap &xmlMap)
 {
     if (name == "AGARI") {
         return EndAgari::from_xml(name, xmlMap);
     } else if (name == "RYUUKYOKU") {
         return EndRyuuKyoKu::from_xml(name, xmlMap);
     } else {
-        throw runtime_error("unknown type in EndData::from_bytes: " + name);
+        throw runtime_error("unknown type in EndData::from_xml: " + name);
     }
 }
 
@@ -192,7 +192,7 @@ void EndData::to_xml(string &str) const
     } else if (is_ryuukyoku()) {
         static_cast<const EndRyuuKyoKu *>(this)->to_xml(str);
     } else {
-        throw runtime_error("unknown type in EndData::to_bytes: " + to_string(m_type));
+        throw runtime_error("unknown type in EndData::to_xml: " + to_string(m_type));
     }
 }
 
@@ -1099,8 +1099,7 @@ string RoundData::str(StringType type) const
 
 int32_t RoundData::get_last_end_idx() const
 {
-    int32_t idx;
-    for (idx = 3; idx >= 0; --idx) {
+    for (int32_t idx = 3; idx >= 0; --idx) {
         if (m_ends[idx]) {
             return idx;
         }
@@ -1263,6 +1262,109 @@ bool MjlogGame::operator==(const MjlogGame &data) const noexcept
 bool MjlogGame::operator!=(const MjlogGame &data) const noexcept
 {
     return !(*this == data);
+}
+
+RoundTracer::RoundTracer(const Hasaki::RoundData &data)
+    : m_data(data)
+    , m_it(data.m_actions.begin())
+    , m_sub_round{}
+    , m_ten(data.m_init.m_ten)
+    , m_hai_public()
+    , m_hai_private()
+    , m_dora{data.m_init.m_dora, HaiType::NO_HAI, HaiType::NO_HAI, HaiType::NO_HAI, HaiType::NO_HAI}
+    , m_real_meld()
+{
+    for (uint32_t player = 0; player < 4; ++ player) {
+        for (const auto hai: data.m_init.m_hai[player]) {
+            m_hai_private[player].add_hai(hai);
+        }
+    }
+    m_hai_public.add_hai(data.m_init.m_dora);
+}
+
+bool RoundTracer::do_action()
+{
+    if (m_it == m_data.m_actions.end()) {
+        return false;
+    }
+
+    auto who = m_it->get_who();
+    if (m_it->is_tuvw()) {
+        const ActionTUVW &action = m_it->get;
+        m_hai_private[who].add_hai(action.m_value);
+        ++ m_sub_round[who];
+    } else if (m_it->is_defg()) {
+        const ActionDEFG &action = m_it->put;
+        m_hai_private[who].del_hai(action.m_value);
+        m_hai_public.add_hai(action.m_value);
+    } else if (m_it->is_meld()) {
+        uint16_t m;
+        if (MetaType::CHI <= m_it->bytes[0] && m_it->bytes[0] < MetaType::PON) {
+            m = m_it->chi.get_m();
+            m_real_meld[who] = true;
+            uint8_t t = m >> 10;
+            uint8_t hai_type = t / 3;
+            uint8_t place = t % 3;
+            uint8_t color = hai_type / 7;       // m/p/s
+            uint8_t num = hai_type % 7;         // 1-7 color
+            uint8_t target = (color * 9 + num) * 4 + 4 * place;
+            m_hai_private[who].add_hai(target); // target是吃进去的那张牌，不区分小编号
+            m_hai_public.del_hai(target);
+        } else if (MetaType::PON <= m_it->bytes[0] && m_it->bytes[0] < MetaType::KA_KAN) {
+            m = m_it->pon.get_m();
+            m_real_meld[who] = true;
+            uint8_t t = m >> 9;
+            uint8_t target = (t / 3) * 4;
+            m_hai_private[who].add_hai(target); // target是碰进去的那张牌，不区分小编号
+            m_hai_public.del_hai(target);
+        } else if (MetaType::KA_KAN <= m_it->bytes[0] && m_it->bytes[0] < MetaType::PEI) {
+            m = m_it->ka_kan.get_m();
+            m_real_meld[who] = true;
+            uint8_t t = m >> 9;
+            uint8_t target = (t / 3) * 4;
+            // 加杠之前一定碰过，先把上次碰的结果清理掉(+3枚)，然后再计算加杠(-4枚)
+            for (uint8_t i = 0; i < 3; ++ i) {
+                m_hai_private[who].add_hai(target);
+                m_hai_public.del_hai(target);
+            }
+            -- m_hai_private[who].meld_cnt;
+        } else if (MetaType::PEI <= m_it->bytes[0] && m_it->bytes[0] < MetaType::AN_KAN) {
+            throw runtime_error("not support three-player now (RoundTracer::do_action)");
+        } else if (MetaType::AN_KAN <= m_it->bytes[0] && m_it->bytes[0] < MetaType::MIN_KAN) {
+            m = m_it->an_kan.get_m();
+        } else if (MetaType::MIN_KAN <= m_it->bytes[0] && m_it->bytes[0] < MetaType::RICHI1) {
+            m = m_it->min_kan.get_m();
+            m_real_meld[who] = true;
+            uint8_t target = m >> 8;
+            m_hai_private[who].add_hai(target);
+            m_hai_public.del_hai(target);
+        } else {
+            throw runtime_error("Unknown meld (RoundTracer::do_action)");
+        }
+        auto meld_hai = flatten_meld(m);
+        for (auto hai: meld_hai) {
+            if (hai == HaiType::NO_HAI) {
+                break;
+            }
+            m_hai_private[who].del_hai(hai);
+            m_hai_public.add_hai(hai);
+        }
+        ++ m_hai_private[who].meld_cnt;
+    } else if (m_it->is_richi()) {
+        if (m_it->is_richi2()) {    // richi1仅为立直宣言，下一张一定是切牌。richi2为立直成功，交1000点
+            m_ten[who] -= 10;
+        }
+    } else if (m_it->is_dora()) {
+        const ActionDora &action = m_it->dora;
+        for (uint8_t i = 0; i < 5; ++ i) {
+            if (m_dora[i] == HaiType::NO_HAI) {
+                m_dora[i] = action.m_value;
+                break;
+            }
+        }
+    }   // else: BYE/RECONNECT (暂不处理)
+    ++ m_it;
+    return m_it != m_data.m_actions.end();
 }
 
 }   // namespace Hasaki

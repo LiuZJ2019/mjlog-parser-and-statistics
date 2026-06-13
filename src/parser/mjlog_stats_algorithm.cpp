@@ -9,6 +9,7 @@
  * @details     存放所有main.cpp可以直接调用的统计算法
  */
 #include "mjlog_stats_algorithm.h"
+#include "parser/mjlog_tenpai.h"
 
 
 namespace Hasaki {
@@ -85,7 +86,7 @@ map<int32_t, int32_t> stats_round_continue_oya(const MjlogGameContainer &contain
 {
     map<int32_t, int32_t> ans;
     for (const auto &game: container.m_games) {
-        for (auto i = 0; i < game.m_rounds.size(); ++ i) {
+        for (uint32_t i = 0; i < game.m_rounds.size(); ++ i) {
             if (i + 1 == game.m_rounds.size()) {
                 continue;
             }
@@ -317,6 +318,39 @@ DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_be_ron_rate, stats_ri
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_be_tsumo_rate, stats_richi_rate_impl, PlayerCondBeChasedRichi, PlayerCondBeTsumo)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_draw_rate, stats_richi_rate_impl, PlayerCondBeChasedRichi, PlayerCondDraw)
 DEFINE_FUNC_NUM_TO_MEAN_STD_SAMPLE(stats_be_chased_richi_n_ryuukyoku_rate, stats_richi_rate_impl, PlayerCondBeChasedRichi, PlayerCondRyuukyoku)
+
+
+
+map<int32_t, map<uint64_t, int32_t> > stats_richi_tenpai_content(const MjlogGameContainer &container)
+{
+    TenPaiCheck::preprocess();
+
+    map<int32_t, map<uint64_t, int32_t> > ans;
+    for (const auto &game: container.m_games) {
+        for (const auto &round_: game.m_rounds) {
+            RoundTracer tracer(round_);
+            while (tracer.do_action()) {
+                if (tracer.m_it->is_richi2()) {
+                    auto who = tracer.m_it->get_who();
+                    auto ten_pai = TenPaiCheck::get_all_ten_pai(tracer.m_hai_private[who]);
+                    uint8_t i = 0;
+                    bitset<34> key;
+                    for (i = 0; i < 16; ++ i) {
+                        if (ten_pai[i] == NO_TEN_PAI) {
+                            break;
+                        }
+                        key.set(ten_pai[i]);
+                    }
+                    if (i == 0) {
+                        throw runtime_error("richi but no ten pai? wtf??");
+                    }
+                    ++ ans[tracer.m_sub_round[who]][key.to_ullong()];
+                }
+            }
+        }
+    }
+    return ans;
+}
 
 
 }   // namespace Hasaki

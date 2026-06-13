@@ -10,11 +10,13 @@
  */
 #include "json_util.h"
 #include <cmath>
+#include <bitset>
 #include <stdexcept>
 
 
 namespace Hasaki {
 
+using std::bitset;
 using std::to_string;
 using std::runtime_error;
 
@@ -85,6 +87,41 @@ string JsonContainer::to_json_string<JsonOutputDataType::NUM_TO_MEAN_STD_SAMPLE>
         vec_string.emplace_back(std::move(s));
     }
     ans += StringJoin(vec_string, ",\n");
+    ans += "\n";
+    ans += "    }";
+    return ans;
+}
+
+template<>
+string JsonContainer::to_json_string<JsonOutputDataType::BIT_SET_TO_OCCUR_TIME>(const JsonOutputData &data) const
+{
+    string ans;
+    ans += "{\n";
+    vector<string> vec_string2;
+    for (const auto &[num, m]: std::get<map<int32_t, map<uint64_t, int32_t> > >(data)) {
+        vector<string> vec_string;
+        for (const auto &[k, v]: m) {
+            bitset<34> key_bit_set(k);
+            string key_str;
+            for (auto i = 0; i < 34; ++ i) {
+                if (key_bit_set.test(i)) {
+                    if (0 <= i && i < 9) {
+                        key_str += to_string(i + 1) + 'm';
+                    } else if (9 <= i && i < 18) {
+                        key_str += to_string((i - 9) + 1) + 'p';
+                    } else if (18 <= i && i < 27) {
+                        key_str += to_string((i - 18) + 1) + 's';
+                    } else {
+                        key_str += to_string((i - 27) + 1) + 'z';
+                    }
+                }
+            }
+            string s = R"(")" + key_str + R"(": )" + to_string(v);
+            vec_string.emplace_back(std::move(s));
+        }
+        vec_string2.emplace_back(R"(      ")" + to_string(num) + R"(": { )" + StringJoin(vec_string, ", ") + " }");
+    }
+    ans += StringJoin(vec_string2, ",\n");
     ans += "\n";
     ans += "    }";
     return ans;
