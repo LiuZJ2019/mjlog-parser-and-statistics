@@ -17,8 +17,9 @@ target_include_directories(tinyxml2 PUBLIC src/thirdparty)
 
 add_compile_options(-Werror)
 
+find_package(Threads REQUIRED)
 add_executable(${PROJECT_NAME} src/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE parser util tinyxml2)
+target_link_libraries(${PROJECT_NAME} PRIVATE parser util tinyxml2 Threads::Threads)
 
 option(ENABLE_TESTS "Enable unit tests" OFF)
 if(ENABLE_TESTS)

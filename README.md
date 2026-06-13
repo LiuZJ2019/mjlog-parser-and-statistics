@@ -20,6 +20,10 @@
 
 ### 版本
 
+#### v1.2.1
+
+- 修复了听牌算法在Linux下编译存在的bug（call_once需要链接pthread）
+
 #### v1.2.0
 
 - 新增高效听牌判断模块（算法设计理论见 `doc/tenpai_algorithm.md` ，代码见 `mjlog_tenpai.*` ），即 `TenPaiCheck` 类。该模块可以独立于本项目工程使用。
