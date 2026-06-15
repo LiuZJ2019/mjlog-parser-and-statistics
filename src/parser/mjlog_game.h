@@ -151,12 +151,6 @@ enum YakuType: uint8_t {
 // 124-135: 5-7z (白发中)
 DoraMap get_dora_map(const DoraIndicator &indicator);
 
-// 16/52/88: 0m/0p/0s
-bool is_aka_dora(uint8_t hai);
-
-// 将2Byte的副露编码解析为原始牌
-array<uint8_t, 4> flatten_meld(uint16_t meld);
-
 // 将压缩副露编码展开为牌序列 (hai_compress + machi)，为计算宝牌做准备
 HaiFlatten flatten_hai(const HaiCompress &hai_compress, uint8_t machi=HaiType::NO_HAI);
 
@@ -282,7 +276,6 @@ struct RoundTracer {
     HaiMsg m_hai_public;                    // 所有人可见的牌河，包括副露+切牌+宝牌指示牌
     array<HaiMsg, 4> m_hai_private;         // 玩家的手牌
     array<uint8_t, 5> m_dora;               // 宝牌
-    array<bool, 4> m_real_meld;             // 记录玩家是否为非暗杠的副露
 
     RoundTracer(const RoundData &data);
     // 模拟m_it对应的Action，如果目前执行完了所有Action，返回false，否则返回true

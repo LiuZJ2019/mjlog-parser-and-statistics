@@ -392,58 +392,28 @@ DoraMap get_dora_map(const DoraIndicator &indicator)
     return ans;
 }
 
-bool is_aka_dora(uint8_t hai)
-{
-    return hai == 16 || hai == 52 || hai == 88;
-}
 
-array<uint8_t, 4> flatten_meld(uint16_t meld)
+// 从 meld code 提取 meld type 对应的 get_m() 返回值
+static uint16_t get_meld_code(const Action &action)
 {
-    if (meld & (1 << 2)) {                  // MetaType::CHI
-        uint8_t t = meld >> 10;
-        uint8_t hai_type = t / 3;           // 1-7m 1-7p 1-7s
-        // uint8_t first_second_third = t % 3; // CHI first/second/third
-        uint8_t color = hai_type / 7;       // m/p/s
-        uint8_t num = hai_type % 7;         // 1-7 color
-        uint8_t first = (color * 9 + num) * 4 + 4 * 0 + ((meld & 0b0000'0000'0001'1000) >> 3);
-        uint8_t second = (color * 9 + num) * 4 + 4 * 1 + ((meld & 0b0000'0000'0110'0000) >> 5);
-        uint8_t third = (color * 9 + num) * 4 + 4 * 2 + ((meld & 0b0000'0001'1000'0000) >> 7);
-        return {first, second, third, HaiType::NO_HAI};
-    } else if (meld & (1 << 3)) {           // MetaType::PON
-        uint8_t t = meld >> 9;
-        uint8_t base = (t / 3) * 4;
-        array<uint8_t, 4> ans = {
-            base,
-            static_cast<uint8_t>(base + 1),
-            static_cast<uint8_t>(base + 2),
-            static_cast<uint8_t>(base + 3)
-        };
-        for (uint8_t i = ((meld & 0b0110'0000) >> 5); i < 3; ++i) {
-            ans[i] = ans[i + 1];
-        }
-        ans[3] = HaiType::NO_HAI;
-        return ans;
-    } else if (meld & (1 << 4)) {           // MetaType::KA_KAN
-        uint8_t t = meld >> 9;
-        uint8_t base = (t / 3) * 4;
-        return {
-            base,
-            static_cast<uint8_t>(base + 1),
-            static_cast<uint8_t>(base + 2),
-            static_cast<uint8_t>(base + 3)
-        };
-    } else if (meld & (1 << 5)) {           // MetaType::PEI
+    uint8_t t = action.bytes[0];
+    if (MetaType::CHI <= t && t < MetaType::PON) {
+        return action.chi.get_m();
+    } else if (MetaType::PON <= t && t < MetaType::KA_KAN) {
+        return action.pon.get_m();
+    } else if (MetaType::KA_KAN <= t && t < MetaType::PEI) {
+        return action.ka_kan.get_m();
+    } else if (MetaType::PEI <= t && t < MetaType::AN_KAN) {
         throw runtime_error("not support three-player now");
-    } else {                                // MetaType::AN_KAN or MetaType::MIN_KAN
-        uint8_t base = (meld >> 8) & 0b1111'1100;
-        return {
-            base,
-            static_cast<uint8_t>(base + 1),
-            static_cast<uint8_t>(base + 2),
-            static_cast<uint8_t>(base + 3)
-        };
+    } else if (MetaType::AN_KAN <= t && t < MetaType::MIN_KAN) {
+        return action.an_kan.get_m();
+    } else if (MetaType::MIN_KAN <= t && t < MetaType::RICHI1) {
+        return action.min_kan.get_m();
+    } else {
+        throw runtime_error("Unknown meld (get_meld_code)");
     }
 }
+
 
 HaiFlatten flatten_hai(const HaiCompress &hai_compress, uint8_t machi)
 {
@@ -1272,7 +1242,6 @@ RoundTracer::RoundTracer(const Hasaki::RoundData &data)
     , m_hai_public()
     , m_hai_private()
     , m_dora{data.m_init.m_dora, HaiType::NO_HAI, HaiType::NO_HAI, HaiType::NO_HAI, HaiType::NO_HAI}
-    , m_real_meld()
 {
     for (uint32_t player = 0; player < 4; ++ player) {
         for (const auto hai: data.m_init.m_hai[player]) {
@@ -1298,58 +1267,9 @@ bool RoundTracer::do_action()
         m_hai_private[who].del_hai(action.m_value);
         m_hai_public.add_hai(action.m_value);
     } else if (m_it->is_meld()) {
-        uint16_t m;
-        if (MetaType::CHI <= m_it->bytes[0] && m_it->bytes[0] < MetaType::PON) {
-            m = m_it->chi.get_m();
-            m_real_meld[who] = true;
-            uint8_t t = m >> 10;
-            uint8_t hai_type = t / 3;
-            uint8_t place = t % 3;
-            uint8_t color = hai_type / 7;       // m/p/s
-            uint8_t num = hai_type % 7;         // 1-7 color
-            uint8_t target = (color * 9 + num) * 4 + 4 * place;
-            m_hai_private[who].add_hai(target); // target是吃进去的那张牌，不区分小编号
-            m_hai_public.del_hai(target);
-        } else if (MetaType::PON <= m_it->bytes[0] && m_it->bytes[0] < MetaType::KA_KAN) {
-            m = m_it->pon.get_m();
-            m_real_meld[who] = true;
-            uint8_t t = m >> 9;
-            uint8_t target = (t / 3) * 4;
-            m_hai_private[who].add_hai(target); // target是碰进去的那张牌，不区分小编号
-            m_hai_public.del_hai(target);
-        } else if (MetaType::KA_KAN <= m_it->bytes[0] && m_it->bytes[0] < MetaType::PEI) {
-            m = m_it->ka_kan.get_m();
-            m_real_meld[who] = true;
-            uint8_t t = m >> 9;
-            uint8_t target = (t / 3) * 4;
-            // 加杠之前一定碰过，先把上次碰的结果清理掉(+3枚)，然后再计算加杠(-4枚)
-            for (uint8_t i = 0; i < 3; ++ i) {
-                m_hai_private[who].add_hai(target);
-                m_hai_public.del_hai(target);
-            }
-            -- m_hai_private[who].meld_cnt;
-        } else if (MetaType::PEI <= m_it->bytes[0] && m_it->bytes[0] < MetaType::AN_KAN) {
-            throw runtime_error("not support three-player now (RoundTracer::do_action)");
-        } else if (MetaType::AN_KAN <= m_it->bytes[0] && m_it->bytes[0] < MetaType::MIN_KAN) {
-            m = m_it->an_kan.get_m();
-        } else if (MetaType::MIN_KAN <= m_it->bytes[0] && m_it->bytes[0] < MetaType::RICHI1) {
-            m = m_it->min_kan.get_m();
-            m_real_meld[who] = true;
-            uint8_t target = m >> 8;
-            m_hai_private[who].add_hai(target);
-            m_hai_public.del_hai(target);
-        } else {
-            throw runtime_error("Unknown meld (RoundTracer::do_action)");
-        }
-        auto meld_hai = flatten_meld(m);
-        for (auto hai: meld_hai) {
-            if (hai == HaiType::NO_HAI) {
-                break;
-            }
-            m_hai_private[who].del_hai(hai);
-            m_hai_public.add_hai(hai);
-        }
-        ++ m_hai_private[who].meld_cnt;
+        uint16_t m = get_meld_code(*m_it);
+        m_hai_private[who].apply_meld(m);
+        m_hai_public.reveal_meld(m);
     } else if (m_it->is_richi()) {
         if (m_it->is_richi2()) {    // richi1仅为立直宣言，下一张一定是切牌。richi2为立直成功，交1000点
             m_ten[who] -= 10;

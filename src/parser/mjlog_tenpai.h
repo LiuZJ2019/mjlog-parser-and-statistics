@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <functional>
+#include "parser/mjlog_meta_type.h"
 
 
 namespace Hasaki {
@@ -29,8 +30,18 @@ using NumHai = array<uint8_t, 9>;
 // 16个一定够用，一个花色听9张只有可能是九莲宝灯，所以多花色场景每个花色最多听8张，两个花色最多16张（实际上肯定没有16张）
 using AllTenHai = array<uint8_t, 16>;
 
-const uint8_t NO_TEN_PAI = 0xff;
 const uint8_t TEN_PAI_YAO13 = 0xfe;
+
+array<uint8_t, 4> flatten_meld(uint16_t meld);
+bool is_aka_dora(uint8_t hai);
+// 副露类型判定，必须与 flatten_meld 的优先级链一致：CHI > PON > KA_KAN > PEI > AN_KAN/MIN_KAN
+inline bool is_chi_meld(uint16_t m)   { return (m & 0b0000'0100) == 0b0000'0100; }
+inline bool is_pon_meld(uint16_t m)   { return (m & 0b0000'1100) == 0b0000'1000; }
+inline bool is_ka_kan_meld(uint16_t m) { return (m & 0b0001'1100) == 0b0001'0000; }
+inline bool is_an_kan_meld(uint16_t m) { return ((m & 0b0011'1100) == 0b0000'0000) && ((m & 0b0000'0011) == 0); }
+inline bool is_ming_kan_meld(uint16_t m) { return ((m & 0b0011'1100) == 0b0000'0000) && ((m & 0b0000'0011) != 0); }
+inline bool is_open_meld_from_m(uint16_t m) { return !is_an_kan_meld(m); }
+uint8_t get_called_tile_from_meld(uint16_t m);
 
 // 5^N, 编译期计算
 constexpr long long power5(unsigned int N)
@@ -89,15 +100,19 @@ struct TenPaiState {
 
 struct HaiMsg {
     uint8_t all_hai[34];
-    uint8_t all_cnt[4];     // man_zu/pin_zu/sou_zu/ji_hai
+    uint8_t all_cnt[4];         // man_zu/pin_zu/sou_zu/ji_hai
     uint8_t meld_cnt;
+    bool has_open_meld;         // 是否存在非暗杠副露
+    uint16_t m_melds[8];        // 副露编码
 
     HaiMsg()
         : all_hai{}
         , all_cnt{}
         , meld_cnt{}
+        , has_open_meld{}
+        , m_melds{}
     {
-    };
+    }
     HaiMsg(const HaiMsg &)=default;
     void add_hai(uint8_t hai) {
         uint8_t hai_real = hai / 4;
@@ -123,15 +138,8 @@ struct HaiMsg {
             throw runtime_error("HaiMsg::del_hai: Invalid decrease");
         }
     }
-    void meld_hai(uint8_t hai[4], uint8_t no_ten_pai_tag) {
-        for (uint8_t i = 0; i < 4; ++ i) {
-            if (hai[i] == no_ten_pai_tag) {
-                break;
-            }
-            del_hai(hai[i]);
-        }
-        ++ meld_cnt;
-    }
+    void apply_meld(uint16_t m);
+    void reveal_meld(uint16_t m);
     const uint8_t *get_man_zu() const noexcept {
         return (const uint8_t *)all_hai;
     }

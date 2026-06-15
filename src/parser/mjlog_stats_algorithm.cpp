@@ -336,13 +336,16 @@ map<int32_t, map<uint64_t, int32_t> > stats_richi_tenpai_content(const MjlogGame
                     uint8_t i = 0;
                     bitset<34> key;
                     for (i = 0; i < 16; ++ i) {
-                        if (ten_pai[i] == NO_TEN_PAI) {
+                        if (ten_pai[i] == HaiType::NO_HAI) {
                             break;
                         }
                         key.set(ten_pai[i]);
                     }
                     if (i == 0) {
                         throw runtime_error("richi but no ten pai? wtf??");
+                    }
+                    if (tracer.m_hai_private[who].has_open_meld) {
+                        throw runtime_error("richi but has private open meld? wtf??");
                     }
                     ++ ans[tracer.m_sub_round[who]][key.to_ullong()];
                 }
